@@ -12,10 +12,12 @@ This test case simulates the **2D fluid flow past a NACA airfoil profile**. It s
 
 ### Fluid Dynamics
 The simulation solves the **incompressible Navier-Stokes equations** for Newtonian fluids.
+
 $$
 \frac{\partial \mathbf{u}}{\partial t} + (\mathbf{u} \cdot \nabla) \mathbf{u} = -\frac{1}{\rho} \nabla p + \nu \nabla^2 \mathbf{u}
 $$
-$$
+
+$$ 
 \nabla \cdot \mathbf{u} = 0
 $$
 
@@ -29,9 +31,11 @@ $$
 
 ### Aerodynamics
 As the fluid flows over the airfoil, the curvature forces the flow to accelerate over the upper surface compared to the lower surface. According to **Bernoulli's Principle**, this velocity increase leads to a pressure drop:
+
 $$
 p + \frac{1}{2}\rho v^2 = \text{constant}
 $$
+
 The pressure difference between the lower and upper surfaces generates **Lift**. The resistance to the fluid motion generates **Drag**.
 
 ## 💻 How to Run
