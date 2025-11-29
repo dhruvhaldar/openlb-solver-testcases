@@ -17,9 +17,9 @@ Fluid motion is driven by density differences due to temperature gradients (buoy
 
 ### Boussinesq Approximation
 This model simplifies the coupling between heat and momentum. Variations in density are neglected everywhere except in the buoyancy term of the momentum equation:
-$$
-\rho \frac{D\mathbf{u}}{Dt} = -\nabla p + \mu \nabla^2 \mathbf{u} + \rho_0 \mathbf{g} [1 - \beta (T - T_0)]
-$$
+
+$$\rho \frac{D\mathbf{u}}{Dt} = -\nabla p + \mu \nabla^2 \mathbf{u} + \rho_0 \mathbf{g} [1 - \beta (T - T_0)]$$
+
 Where:
 *   $\mathbf{g}$: Gravity vector.
 *   $\beta$: Thermal expansion coefficient.
