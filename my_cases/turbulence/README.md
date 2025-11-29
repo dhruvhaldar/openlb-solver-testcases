@@ -18,9 +18,12 @@ The TGV demonstrates the mechanism of the turbulent energy cascade:
 
 ### Initial Conditions
 The flow is initialized in a periodic domain with a specific vortex structure:
-$$ u = V_0 \sin(x)\cos(y)\cos(z) $$
-$$ v = -V_0 \cos(x)\sin(y)\cos(z) $$
-$$ w = 0 $$
+
+$$u = V_0 \sin(x)\cos(y)\cos(z)$$
+
+$$v = -V_0 \cos(x)\sin(y)\cos(z)$$
+
+$$w = 0$$
 
 ### Metrics
 *   **Kinetic Energy Decay**: The rate at which the total energy of the system decreases.
