@@ -205,3 +205,15 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+*.vtm
+*.vti
+*.pvd
+*.o
+*.d
+airfoil2d
+venturi3d
+laminarReactiveTmixer
+squareCavity2dLaminar
+aneurysm3d
+tgv3d
+tmp/
