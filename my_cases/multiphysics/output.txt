@@ -1,0 +1,6 @@
+xVelocity in yDir=0; error(rel)=1
+yVelocity in xDir=0; error(rel)=1
+yMaxVel / xMaxVel=-nan; error(rel)=nan
+yCoord of xMaxVel=0; error(rel)=1
+xCoord of yMaxVel=0; error(rel)=1
+Nusselt=0; error(rel)=1
