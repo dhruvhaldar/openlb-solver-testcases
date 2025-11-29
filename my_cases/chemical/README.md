@@ -14,7 +14,9 @@ This case simulates the mixing and chemical reaction of two species in a **T-sha
 The simulation couples the momentum equation with mass transport equations.
 1.  **Navier-Stokes**: Solves for the fluid velocity field $\mathbf{u}$.
 2.  **Species Transport**: For each chemical species $i$, the concentration $C_i$ evolves as:
-    $$ \frac{\partial C_i}{\partial t} + \nabla \cdot (\mathbf{u} C_i) = \nabla \cdot (D_i \nabla C_i) + R_i $$
+
+    $$\frac{\partial C_i}{\partial t} + \nabla \cdot (\mathbf{u} C_i) = \nabla \cdot (D_i \nabla C_i) + R_i$$
+    
     *   **Advection** ($\mathbf{u} C_i$): Transport by fluid flow.
     *   **Diffusion** ($D_i \nabla C_i$): Molecular mixing.
     *   **Reaction** ($R_i$): Chemical transformation (e.g., $A + B \rightarrow C$).
