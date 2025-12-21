@@ -259,9 +259,10 @@ void simulate(MyCase& myCase)
 
   const T maxPhysT = params.get<parameters::MAX_PHYS_T>();
 
-  OstreamManager clout(std::cout, "getResults");
+  OstreamManager clout(std::cout, "simulate");
 
-  clout << "starting simulation..." << std::endl;
+  clout << "Starting simulation..." << std::endl;
+  clout << "Output will be written to 'aneurysm.vtm' and 'Mesh.vtu'." << std::endl;
 
   auto aneurysmI = myCase.getMesh().getSTL(params.get<parameters::STL_PATH>());
 
@@ -281,6 +282,7 @@ void simulate(MyCase& myCase)
 
   timer.stop();
   timer.printSummary();
+  clout << "Simulation finished. Results saved." << std::endl;
 }
 
 int main(int argc, char* argv[])
