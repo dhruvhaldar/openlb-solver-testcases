@@ -186,12 +186,18 @@ void getResults(MyCase& myCase, util::Timer<MyCase::value_t>& timer, std::size_t
   using DESCRIPTOR = MyCase::descriptor_t_of<NavierStokes>;
   auto& lattice    = myCase.getLattice(NavierStokes {});
   auto& converter  = lattice.getUnitConverter();
-  auto& params = myCase.getParameters();
-
-  OstreamManager clout(std::cout, "getResults");
 
   const std::size_t vtkIter  = converter.getLatticeTime(.4);
   const std::size_t statIter = converter.getLatticeTime(.4);
+
+  // Optimization: Early return to avoid expensive object creation (STL lookup, etc.)
+  // when no output is needed for this time step.
+  if (iT != 0 && iT % vtkIter != 0 && iT % statIter != 0) {
+    return;
+  }
+
+  auto& params = myCase.getParameters();
+  OstreamManager clout(std::cout, "getResults");
 
   SuperVTMwriter3D<T> vtmWriter("aneurysm");
 
