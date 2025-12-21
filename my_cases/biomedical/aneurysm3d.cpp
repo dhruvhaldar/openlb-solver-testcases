@@ -309,6 +309,15 @@ int main(int argc, char* argv[])
   }
   myCaseParameters.fromCLI(argc, argv);
 
+  if (myCaseParameters.get<olb::parameters::RESOLUTION>() <= 0) {
+    std::cerr << "Error: RESOLUTION must be a positive integer." << std::endl;
+    return 1;
+  }
+  if (myCaseParameters.get<olb::parameters::REYNOLDS>() <= 0) {
+    std::cerr << "Error: REYNOLDS must be a positive number." << std::endl;
+    return 1;
+  }
+
   Mesh mesh = createMesh(myCaseParameters);
 
   MyCase myCase(myCaseParameters, mesh);
