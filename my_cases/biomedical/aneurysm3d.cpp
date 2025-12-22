@@ -259,7 +259,7 @@ void simulate(MyCase& myCase)
 
   const T maxPhysT = params.get<parameters::MAX_PHYS_T>();
 
-  OstreamManager clout(std::cout, "getResults");
+  OstreamManager clout(std::cout, "simulate");
 
   clout << "starting simulation..." << std::endl;
 
@@ -281,6 +281,15 @@ void simulate(MyCase& myCase)
 
   timer.stop();
   timer.printSummary();
+
+  clout << "==================================================" << std::endl;
+  clout << "Simulation completed successfully!" << std::endl;
+  clout << "Output files:" << std::endl;
+  clout << "  - Volume data:  aneurysm.vtm (Time series)" << std::endl;
+  clout << "  - Surface data: Mesh.vtu (Geometry)" << std::endl;
+  clout << "  - Wall Stress:  Mesh.pvd (Visualization)" << std::endl;
+  clout << "View results using Paraview: https://www.paraview.org" << std::endl;
+  clout << "==================================================" << std::endl;
 }
 
 int main(int argc, char* argv[])
