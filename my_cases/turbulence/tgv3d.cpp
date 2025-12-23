@@ -486,6 +486,15 @@ int main(int argc, char* argv[])
   }
   myCaseParameters.fromCLI(argc, argv);
 
+  // Sentinel Security Check: Input Validation
+  if (myCaseParameters.get<olb::parameters::RESOLUTION>() <= 4) {
+    std::cerr << "Error: RESOLUTION must be greater than 4 to prevent division by zero or invalid mesh." << std::endl;
+    return 1;
+  }
+  if (myCaseParameters.get<olb::parameters::REYNOLDS>() <= 0) {
+    std::cerr << "Error: REYNOLDS must be positive to prevent division by zero." << std::endl;
+    return 1;
+  }
 
   Mesh mesh = createMesh(myCaseParameters);
 
