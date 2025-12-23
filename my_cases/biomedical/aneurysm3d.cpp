@@ -259,8 +259,19 @@ void simulate(MyCase& myCase)
 
   const T maxPhysT = params.get<parameters::MAX_PHYS_T>();
 
-  OstreamManager clout(std::cout, "getResults");
+  OstreamManager clout(std::cout, "simulate");
 
+  clout << "========================================" << std::endl;
+  clout << "      Aneurysm 3D Simulation Start      " << std::endl;
+  clout << "========================================" << std::endl;
+  clout << "Parameters:" << std::endl;
+  clout << "  Reynolds number: " << params.get<parameters::REYNOLDS>() << std::endl;
+  clout << "  Resolution:      " << params.get<parameters::RESOLUTION>() << std::endl;
+  clout << "  Max Phys Time:   " << maxPhysT << " s" << std::endl;
+  clout << "Output Files:" << std::endl;
+  clout << "  Flow data:       aneurysm.vtm (and .vts)" << std::endl;
+  clout << "  Geometry:        Mesh.vtu" << std::endl;
+  clout << "========================================" << std::endl;
   clout << "starting simulation..." << std::endl;
 
   auto aneurysmI = myCase.getMesh().getSTL(params.get<parameters::STL_PATH>());
@@ -281,6 +292,10 @@ void simulate(MyCase& myCase)
 
   timer.stop();
   timer.printSummary();
+
+  clout << "========================================" << std::endl;
+  clout << "       Simulation Completed Successfully " << std::endl;
+  clout << "========================================" << std::endl;
 }
 
 int main(int argc, char* argv[])
