@@ -314,10 +314,15 @@ void getResults(MyCase& myCase, util::Timer<MyCase::value_t>& timer, std::size_t
   auto& geometry   = myCase.getGeometry();
   auto& converter  = lattice.getUnitConverter();
 
-  OstreamManager clout(std::cout, "getResults");
-
   const int vtkIter  = lattice.getUnitConverter().getLatticeTime(.3);
   const int statIter = lattice.getUnitConverter().getLatticeTime(.1);
+
+  // Optimization: Early return to avoid expensive object creation
+  if (iT != 0 && iT % vtkIter != 0 && iT % statIter != 0) {
+    return;
+  }
+
+  OstreamManager clout(std::cout, "getResults");
 
   Vector<T, 2>   airfoilCenter(params.get<parameters::AIRFOIL_POSITION>()[0],
                                params.get<parameters::AIRFOIL_POSITION>()[1]);
@@ -439,11 +444,11 @@ void simulate(MyCase& myCase)
     }
 
     // === Collide and Stream Execution ===
-    std::cout << "Step " << iT << ": collideAndStream" << std::endl;
+    // std::cout << "Step " << iT << ": collideAndStream" << std::endl;
     lattice.collideAndStream();
 
     // === Computation and Output of the Results ===
-    std::cout << "Step " << iT << ": getResults" << std::endl;
+    // std::cout << "Step " << iT << ": getResults" << std::endl;
     getResults(myCase, timer, iT);
   }
 
