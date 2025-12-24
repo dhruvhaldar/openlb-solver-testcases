@@ -479,6 +479,16 @@ int main(int argc, char* argv[])
   }
   myCaseParameters.fromCLI(argc, argv);
 
+  // Input validation
+  if (myCaseParameters.get<olb::parameters::RESOLUTION>() <= 0) {
+    std::cerr << "Error: RESOLUTION must be positive." << std::endl;
+    return 1;
+  }
+  if (myCaseParameters.get<olb::parameters::REYNOLDS>() <= 0) {
+    std::cerr << "Error: REYNOLDS must be positive." << std::endl;
+    return 1;
+  }
+
   /// === Step 3: Create Mesh ===
   Mesh mesh = createMesh(myCaseParameters);
 
