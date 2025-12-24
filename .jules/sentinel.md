@@ -1,6 +1,4 @@
-# Sentinel Journal
-
-## 2024-05-22 - Missing Input Validation in Simulation Parameters
-**Vulnerability:** Simulation parameters like `RESOLUTION` and `REYNOLDS` were accepted from CLI without validation, leading to potential division-by-zero crashes (DoS) if set to 0 or negative values.
-**Learning:** Even in scientific computing/simulation codes, input validation is crucial for availability and stability. Users might inadvertently (or maliciously) provide invalid inputs via CLI overrides.
-**Prevention:** Always validate configuration parameters after loading them from all sources (defaults, config files, CLI) and before using them in calculations.
+## 2024-05-22 - Missing Input Validation in Airfoil Simulation
+**Vulnerability:** The `airfoil2d` simulation accepted `RESOLUTION` and `REYNOLDS` parameters directly from CLI without validation, creating a risk of division-by-zero crashes or undefined behavior if users provided non-positive values.
+**Learning:** Reusing simulation code patterns (like `myCaseParameters.fromCLI`) across different modules can propagate security gaps (missing validation) if the base pattern doesn't enforce them.
+**Prevention:** Systematically review all entry points for user input (CLI, config files) in every new simulation case and enforce constraints (e.g., `> 0`) immediately after loading.
