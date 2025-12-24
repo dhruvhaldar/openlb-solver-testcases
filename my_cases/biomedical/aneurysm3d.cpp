@@ -186,9 +186,11 @@ void getResults(MyCase& myCase, util::Timer<MyCase::value_t>& timer, std::size_t
   using DESCRIPTOR = MyCase::descriptor_t_of<NavierStokes>;
   auto& lattice    = myCase.getLattice(NavierStokes {});
   auto& converter  = lattice.getUnitConverter();
+  auto& params     = myCase.getParameters();
 
-  const std::size_t vtkIter  = converter.getLatticeTime(.4);
-  const std::size_t statIter = converter.getLatticeTime(.4);
+  const T maxPhysT = params.get<parameters::MAX_PHYS_T>();
+  const std::size_t vtkIter  = std::max<std::size_t>(1, converter.getLatticeTime(maxPhysT / 20.0));
+  const std::size_t statIter = std::max<std::size_t>(1, converter.getLatticeTime(maxPhysT / 20.0));
 
   // Optimization: Early return to avoid expensive object creation (STL lookup, etc.)
   // when no output is needed for this time step.
@@ -196,7 +198,6 @@ void getResults(MyCase& myCase, util::Timer<MyCase::value_t>& timer, std::size_t
     return;
   }
 
-  auto& params = myCase.getParameters();
   OstreamManager clout(std::cout, "getResults");
 
   SuperVTMwriter3D<T> vtmWriter("aneurysm");
@@ -274,9 +275,11 @@ void simulate(MyCase& myCase)
   clout << "  Reynolds number: " << params.get<parameters::REYNOLDS>() << std::endl;
   clout << "  Resolution:      " << params.get<parameters::RESOLUTION>() << std::endl;
   clout << "  Max Phys Time:   " << maxPhysT << " s" << std::endl;
+  clout << "  Total Time Steps: " << converter.getLatticeTime(maxPhysT) << std::endl;
   clout << "Output Files:" << std::endl;
   clout << "  Flow data:       aneurysm.vtm (and .vts)" << std::endl;
   clout << "  Geometry:        Mesh.vtu" << std::endl;
+  clout << "  Output Interval: " << (maxPhysT / 20.0) << " s" << " (" << converter.getLatticeTime(maxPhysT / 20.0) << " steps)" << std::endl;
   clout << "========================================" << std::endl;
   clout << "starting simulation..." << std::endl;
 
