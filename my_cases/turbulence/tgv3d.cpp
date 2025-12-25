@@ -285,8 +285,13 @@ void getResults(MyCase& myCase,
   auto& converter = lattice.getUnitConverter();
 
   const T maxPhysT = parameters.get<parameters::MAX_PHYS_T>();
-  const std::size_t iTlog = converter.getLatticeTime(maxPhysT/40.);
-  const std::size_t iTvtk = converter.getLatticeTime(maxPhysT/40.);
+  const std::size_t iTlog = std::max<std::size_t>(1, converter.getLatticeTime(maxPhysT/40.));
+  const std::size_t iTvtk = std::max<std::size_t>(1, converter.getLatticeTime(maxPhysT/40.));
+
+  // Optimization: Early return to avoid expensive object creation
+  if (iT != 0 && iT % iTlog != 0 && iT % iTvtk != 0) {
+    return;
+  }
 
   SuperVTMwriter3D<T> vtmWriter("tgv3d");
 
