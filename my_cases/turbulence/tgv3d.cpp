@@ -445,10 +445,26 @@ void simulate(MyCase& myCase) {
 
   auto& lattice = myCase.getLattice(NavierStokes{});
   auto& parameters = myCase.getParameters();
+  auto& converter = lattice.getUnitConverter();
 
   const T physMaxT = parameters.get<parameters::MAX_PHYS_T>();
 
-  const std::size_t iTmax = myCase.getLattice(NavierStokes{}).getUnitConverter().getLatticeTime(physMaxT);
+  const std::size_t iTmax = converter.getLatticeTime(physMaxT);
+
+  OstreamManager clout(std::cout, "simulate");
+  clout << "========================================" << std::endl;
+  clout << "      TGV 3D Simulation Start           " << std::endl;
+  clout << "========================================" << std::endl;
+  clout << "Parameters:" << std::endl;
+  clout << "  Reynolds number: " << parameters.get<parameters::REYNOLDS>() << std::endl;
+  clout << "  Resolution:      " << parameters.get<parameters::RESOLUTION>() << std::endl;
+  clout << "  Max Phys Time:   " << physMaxT << " s" << std::endl;
+  clout << "  Total Time Steps: " << iTmax << std::endl;
+  clout << "Output:" << std::endl;
+  clout << "  Output Interval: " << (physMaxT / 40.0) << " s" << std::endl;
+  clout << "========================================" << std::endl;
+  clout << "Starting simulation..." << std::endl;
+
   util::Timer<T> timer(iTmax, myCase.getGeometry().getStatistics().getNvoxel());
   timer.start();
 
@@ -480,6 +496,10 @@ void simulate(MyCase& myCase) {
 
   timer.stop();
   timer.printSummary();
+
+  clout << "========================================" << std::endl;
+  clout << "       Simulation Completed Successfully " << std::endl;
+  clout << "========================================" << std::endl;
 }
 
 int main(int argc, char* argv[])
