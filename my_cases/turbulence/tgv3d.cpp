@@ -220,6 +220,7 @@ std::vector<std::vector<MyCase::value_t>> getDNSValues(MyCase& myCase)
   else {
     std::cout<<"Reynolds number not supported or maxPhysT>10: DNS plot will be disabled"<<std::endl;
     plotDNS = false;
+    return {};
   }
   std::ifstream data(file_name);
   std::string line;
@@ -237,6 +238,12 @@ std::vector<std::vector<MyCase::value_t>> getDNSValues(MyCase& myCase)
       parsedRow.push_back(parsedDat[parsedDat.size()-1][1] - parsedRow[2] * parsedDat[parsedDat.size()-1][0]);
     }
     parsedDat.push_back(parsedRow);
+  }
+
+  if (parsedDat.empty()) {
+    std::cerr << "Error: DNS data file is empty or could not be read." << std::endl;
+    plotDNS = false;
+    return {};
   }
 
   int steps = maxPhysT / vtkSave + 1.5;
