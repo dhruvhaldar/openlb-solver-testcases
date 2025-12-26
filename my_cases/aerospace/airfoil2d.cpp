@@ -332,10 +332,6 @@ void getResults(MyCase& myCase, util::Timer<MyCase::value_t>& timer, std::size_t
   T              chordLength   = params.get<parameters::CHORD_LENGTH>();
   T              angleOfAttack = params.get<parameters::ANGLE_OF_ATTACK>();
 
-  IndicatorAirfoil2D<T> airfoilI(airfoilCenter, chordLength, airfoilParams[0] / 100., airfoilParams[1] / 10.,
-                                 airfoilParams[2] / 100.);
-  IndicatorRotate<T, 2> airfoil(airfoilCenter, angleOfAttack * std::numbers::pi / 90., airfoilI);
-
   if (iT == 0) {
     SuperVTMwriter2D<T> vtmWriter("airfoil2d");
     vtmWriter.createMasterFile();
@@ -389,6 +385,10 @@ void getResults(MyCase& myCase, util::Timer<MyCase::value_t>& timer, std::size_t
   }
 
   if (iT % vtkIter == 0) {
+    IndicatorAirfoil2D<T> airfoilI(airfoilCenter, chordLength, airfoilParams[0] / 100., airfoilParams[1] / 10.,
+                                   airfoilParams[2] / 100.);
+    IndicatorRotate<T, 2> airfoil(airfoilCenter, angleOfAttack * std::numbers::pi / 90., airfoilI);
+
     SuperVTMwriter2D<T>                                             vtmWriter("airfoil2d");
     SuperLatticePhysVelocity2D<T, DESCRIPTOR>                       velocity(lattice, lattice.getUnitConverter());
     SuperLatticePhysPressure2D<T, DESCRIPTOR>                       pressure(lattice, lattice.getUnitConverter());
