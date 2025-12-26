@@ -417,6 +417,20 @@ void simulate(MyCase& myCase)
   auto&   converter = lattice.getUnitConverter();
   const T physMaxT  = params.get<parameters::MAX_PHYS_T>();
 
+  OstreamManager clout(std::cout, "simulate");
+  clout << "========================================" << std::endl;
+  clout << "      Airfoil 2D Simulation Start       " << std::endl;
+  clout << "========================================" << std::endl;
+  clout << "Parameters:" << std::endl;
+  clout << "  Reynolds number: " << params.get<parameters::REYNOLDS>() << std::endl;
+  clout << "  Resolution:      " << params.get<parameters::RESOLUTION>() << std::endl;
+  clout << "  Max Phys Time:   " << physMaxT << " s" << std::endl;
+  clout << "  Total Time Steps: " << converter.getLatticeTime(physMaxT) << std::endl;
+  clout << "Output Files:" << std::endl;
+  clout << "  Flow data:       airfoil2d.vtm (and .vts)" << std::endl;
+  clout << "========================================" << std::endl;
+  clout << "Starting simulation..." << std::endl;
+
   const std::size_t iTmax = myCase.getLattice(NavierStokes {}).getUnitConverter().getLatticeTime(physMaxT);
   util::Timer<T>    timer(iTmax, myCase.getGeometry().getStatistics().getNvoxel());
   timer.start();
@@ -454,6 +468,10 @@ void simulate(MyCase& myCase)
 
   timer.stop();
   timer.printSummary();
+
+  clout << "========================================" << std::endl;
+  clout << "       Simulation Completed Successfully " << std::endl;
+  clout << "========================================" << std::endl;
 }
 
 int main(int argc, char* argv[])
