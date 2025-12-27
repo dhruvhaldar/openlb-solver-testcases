@@ -169,6 +169,12 @@ void getResults(MyCase& myCase,
   const std::size_t iTlog = converter.getLatticeTime(1.);
   const std::size_t iTvtk = converter.getLatticeTime(1.);
 
+  // Optimization: Early return to avoid expensive object creation (STL lookup, etc.)
+  // when no output is needed for this time step.
+  if ( iT!=0 && iT % iTvtk != 0 && iT % iTlog != 0 ) {
+    return;
+  }
+
   SuperVTMwriter3D<T> vtmWriter( "venturi3d" );
 
   if ( iT==0 ) {
