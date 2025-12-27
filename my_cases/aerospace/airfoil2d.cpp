@@ -418,13 +418,27 @@ void simulate(MyCase& myCase)
   const T physMaxT  = params.get<parameters::MAX_PHYS_T>();
 
   const std::size_t iTmax = myCase.getLattice(NavierStokes {}).getUnitConverter().getLatticeTime(physMaxT);
+
+  OstreamManager clout(std::cout, "simulate");
+  clout << "========================================" << std::endl;
+  clout << "      Airfoil 2D Simulation Start       " << std::endl;
+  clout << "========================================" << std::endl;
+  clout << "Parameters:" << std::endl;
+  clout << "  Reynolds number: " << params.get<parameters::REYNOLDS>() << std::endl;
+  clout << "  Resolution:      " << params.get<parameters::RESOLUTION>() << std::endl;
+  clout << "  Max Phys Time:   " << physMaxT << " s" << std::endl;
+  clout << "  Chord Length:    " << params.get<parameters::CHORD_LENGTH>() << std::endl;
+  clout << "  Angle of Attack: " << params.get<parameters::ANGLE_OF_ATTACK>() << " deg" << std::endl;
+  clout << "========================================" << std::endl;
+  clout << "Starting simulation..." << std::endl;
+
   util::Timer<T>    timer(iTmax, myCase.getGeometry().getStatistics().getNvoxel());
   timer.start();
 
-  std::cout << "Creating smoothInflowUpdateO..." << std::endl;
+  clout << "Creating smoothInflowUpdateO..." << std::endl;
   SuperLatticeCoupling smoothInflowUpdateO(SmoothInflowUpdateO {}, names::NavierStokes {}, lattice);
   smoothInflowUpdateO.restrictTo(geometry.getMaterialIndicator(3));
-  std::cout << "Created smoothInflowUpdateO..." << std::endl;
+  clout << "Created smoothInflowUpdateO..." << std::endl;
 
   for (std::size_t iT = 0; iT < iTmax; ++iT) {
     {
@@ -454,6 +468,10 @@ void simulate(MyCase& myCase)
 
   timer.stop();
   timer.printSummary();
+
+  clout << "========================================" << std::endl;
+  clout << "       Simulation Completed Successfully " << std::endl;
+  clout << "========================================" << std::endl;
 }
 
 int main(int argc, char* argv[])
