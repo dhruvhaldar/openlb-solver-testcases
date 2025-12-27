@@ -39,6 +39,7 @@
  */
 
 #include <olb.h>
+#include <limits> // Added for std::numeric_limits
 
 using namespace olb;
 using namespace olb::names;
@@ -230,12 +231,24 @@ std::vector<std::vector<MyCase::value_t>> getDNSValues(MyCase& myCase)
     std::string cell;
     std::vector<T> parsedRow;
     while (std::getline(lineStream, cell, ' ')) {
-      parsedRow.push_back(atof(cell.c_str()));
-
+      if (!cell.empty()) {
+        parsedRow.push_back(atof(cell.c_str()));
+      }
     }
-    if (parsedDat.size() > 0 && parsedRow.size() > 1) {
-      parsedRow.push_back((parsedRow[1] - parsedDat[parsedDat.size() - 1][1]) / (parsedRow[0] - parsedDat[parsedDat.size()-1][0]));
-      parsedRow.push_back(parsedDat[parsedDat.size()-1][1] - parsedRow[2] * parsedDat[parsedDat.size()-1][0]);
+
+    // Sentinel Security Check: Input Validation
+    // Skip lines that don't have the expected minimum 2 columns to prevent out-of-bounds access.
+    if (parsedRow.size() < 2) {
+      continue;
+    }
+
+    if (parsedDat.size() > 0) {
+      const auto& prevRow = parsedDat.back();
+      // Ensure previous row has required indices (0 and 1) and avoid division by zero
+      if (prevRow.size() >= 2 && util::abs(parsedRow[0] - prevRow[0]) > std::numeric_limits<T>::epsilon()) {
+        parsedRow.push_back((parsedRow[1] - prevRow[1]) / (parsedRow[0] - prevRow[0]));
+        parsedRow.push_back(prevRow[1] - parsedRow[2] * prevRow[0]);
+      }
     }
     parsedDat.push_back(parsedRow);
   }
