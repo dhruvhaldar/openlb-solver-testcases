@@ -157,7 +157,9 @@ void setTemporalValues(MyCase& myCase,
 
 void getResults(MyCase& myCase,
                 util::Timer<MyCase::value_t>& timer,
-                std::size_t iT)
+                std::size_t iT,
+                std::size_t iTlog,
+                std::size_t iTvtk)
 {
   /// Write vtk plots every 0.3 seconds (of phys. simulation time)
   using T = MyCase::value_t;
@@ -165,9 +167,6 @@ void getResults(MyCase& myCase,
 
   auto& lattice = myCase.getLattice(NavierStokes{});
   auto& converter = lattice.getUnitConverter();
-
-  const std::size_t iTlog = converter.getLatticeTime(1.);
-  const std::size_t iTvtk = converter.getLatticeTime(1.);
 
   // Optimization: Early return to avoid expensive object creation (STL lookup, etc.)
   // when no output is needed for this time step.
@@ -230,6 +229,9 @@ void simulate(MyCase& myCase) {
   util::Timer<T> timer(iTmax, myCase.getGeometry().getStatistics().getNvoxel());
   timer.start();
 
+  const std::size_t iTlog = myCase.getLattice(NavierStokes{}).getUnitConverter().getLatticeTime(1.);
+  const std::size_t iTvtk = myCase.getLattice(NavierStokes{}).getUnitConverter().getLatticeTime(1.);
+
   for (std::size_t iT=0; iT < iTmax; ++iT) {
     /// === Step 8.1: Update the Boundary Values and Fields at Times ===
     setTemporalValues(myCase, iT);
@@ -238,7 +240,7 @@ void simulate(MyCase& myCase) {
     myCase.getLattice(NavierStokes{}).collideAndStream();
 
     /// === Step 8.3: Computation and Output of the Results ===
-    getResults(myCase, timer, iT);
+    getResults(myCase, timer, iT, iTlog, iTvtk);
   }
 
   timer.stop();
