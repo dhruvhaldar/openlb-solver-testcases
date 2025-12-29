@@ -286,20 +286,17 @@ std::vector<std::vector<MyCase::value_t>> getDNSValues(MyCase& myCase)
 /// Compute simulation results at times
 void getResults(MyCase& myCase,
                 util::Timer<MyCase::value_t>& timer,
-                std::size_t iT)
+                std::size_t iT,
+                std::size_t iTlog,
+                std::size_t iTvtk)
 {
   /// Write vtk plots every 0.3 seconds (of phys. simulation time)
   using T = MyCase::value_t;
   using DESCRIPTOR = MyCase::descriptor_t;
 
-  auto& parameters = myCase.getParameters();
   auto& lattice = myCase.getLattice(NavierStokes{});
   auto& geometry = myCase.getGeometry();
   auto& converter = lattice.getUnitConverter();
-
-  const T maxPhysT = parameters.get<parameters::MAX_PHYS_T>();
-  const std::size_t iTlog = std::max<std::size_t>(1, converter.getLatticeTime(maxPhysT/40.));
-  const std::size_t iTvtk = std::max<std::size_t>(1, converter.getLatticeTime(maxPhysT/40.));
 
   // Optimization: Early return to avoid expensive object creation
   if (iT != 0 && iT % iTlog != 0 && iT % iTvtk != 0) {
@@ -463,6 +460,8 @@ void simulate(MyCase& myCase) {
   const T physMaxT = parameters.get<parameters::MAX_PHYS_T>();
 
   const std::size_t iTmax = converter.getLatticeTime(physMaxT);
+  const std::size_t iTlog = std::max<std::size_t>(1, converter.getLatticeTime(physMaxT/40.));
+  const std::size_t iTvtk = std::max<std::size_t>(1, converter.getLatticeTime(physMaxT/40.));
 
   OstreamManager clout(std::cout, "simulate");
   clout << "========================================" << std::endl;
@@ -503,7 +502,7 @@ void simulate(MyCase& myCase) {
     myCase.getLattice(NavierStokes{}).collideAndStream();
 
     /// === Step 8.3: Computation and Output of the Results ===
-    getResults(myCase, timer, iT);
+    getResults(myCase, timer, iT, iTlog, iTvtk);
     // computeDissipation(myCase, timer, iT);
   }
 
