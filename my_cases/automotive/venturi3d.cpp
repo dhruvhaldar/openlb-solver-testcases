@@ -59,6 +59,13 @@ Mesh<MyCase::value_t,MyCase::d> createMesh(MyCase::ParametersD& parameters) {
 
   int N = config["Application"]["Discretization"]["Resolution"].get<int>();
 
+  // Sentinel Security Check: Input Validation
+  if (N <= 0) {
+    OstreamManager clout(std::cout, "createMesh");
+    clout << "Error: Resolution must be positive to prevent division by zero." << std::endl;
+    std::exit(1);
+  }
+
   Mesh<T,MyCase::d> mesh(*venturi, 1./N, singleton::mpi().getSize());
   mesh.setOverlap(parameters.get<parameters::OVERLAP>());
   return mesh;
