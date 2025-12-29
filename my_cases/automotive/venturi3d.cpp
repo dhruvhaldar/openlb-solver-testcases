@@ -157,7 +157,9 @@ void setTemporalValues(MyCase& myCase,
 
 void getResults(MyCase& myCase,
                 util::Timer<MyCase::value_t>& timer,
-                std::size_t iT)
+                std::size_t iT,
+                std::size_t iTlog,
+                std::size_t iTvtk)
 {
   /// Write vtk plots every 0.3 seconds (of phys. simulation time)
   using T = MyCase::value_t;
@@ -165,9 +167,6 @@ void getResults(MyCase& myCase,
 
   auto& lattice = myCase.getLattice(NavierStokes{});
   auto& converter = lattice.getUnitConverter();
-
-  const std::size_t iTlog = converter.getLatticeTime(1.);
-  const std::size_t iTvtk = converter.getLatticeTime(1.);
 
   // Optimization: Early return to avoid expensive object creation (STL lookup, etc.)
   // when no output is needed for this time step.
@@ -226,7 +225,25 @@ void simulate(MyCase& myCase) {
   auto& parameters = myCase.getParameters();
   const T maxPhysT = parameters.get<parameters::MAX_PHYS_T>();
 
-  const std::size_t iTmax = myCase.getLattice(NavierStokes{}).getUnitConverter().getLatticeTime(maxPhysT);
+  auto& lattice = myCase.getLattice(NavierStokes{});
+  auto& converter = lattice.getUnitConverter();
+  const std::size_t iTmax = converter.getLatticeTime(maxPhysT);
+
+  // UX: Calculate output intervals to ensure progress feedback
+  // (approx 20 updates per simulation)
+  const T outputIntervalPhys = maxPhysT / 20.0;
+  const std::size_t iTlog = std::max(std::size_t(1), converter.getLatticeTime(outputIntervalPhys));
+  const std::size_t iTvtk = std::max(std::size_t(1), converter.getLatticeTime(outputIntervalPhys));
+
+  OstreamManager clout( std::cout, "simulate" );
+  clout << "************************************************" << std::endl;
+  clout << "Simulation: venturi3d" << std::endl;
+  clout << "Resolution: " << converter.getResolution() << std::endl;
+  clout << "Reynolds number: " << converter.getReynoldsNumber() << std::endl;
+  clout << "Total Physical Time: " << maxPhysT << " s" << std::endl;
+  clout << "Output Interval: " << outputIntervalPhys << " s" << std::endl;
+  clout << "************************************************" << std::endl;
+
   util::Timer<T> timer(iTmax, myCase.getGeometry().getStatistics().getNvoxel());
   timer.start();
 
@@ -238,11 +255,12 @@ void simulate(MyCase& myCase) {
     myCase.getLattice(NavierStokes{}).collideAndStream();
 
     /// === Step 8.3: Computation and Output of the Results ===
-    getResults(myCase, timer, iT);
+    getResults(myCase, timer, iT, iTlog, iTvtk);
   }
 
   timer.stop();
   timer.printSummary();
+  clout << "Simulation finished successfully." << std::endl;
 }
 
 
