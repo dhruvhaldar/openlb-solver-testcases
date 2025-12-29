@@ -224,9 +224,33 @@ void getResults(MyCase& myCase,
 void simulate(MyCase& myCase) {
   using T = MyCase::value_t;
   auto& parameters = myCase.getParameters();
+  auto& lattice = myCase.getLattice(NavierStokes{});
+  auto& converter = lattice.getUnitConverter();
   const T maxPhysT = parameters.get<parameters::MAX_PHYS_T>();
 
-  const std::size_t iTmax = myCase.getLattice(NavierStokes{}).getUnitConverter().getLatticeTime(maxPhysT);
+  const std::size_t iTmax = converter.getLatticeTime(maxPhysT);
+
+  // === Palette: Standardized Banner ===
+  OstreamManager clout(std::cout, "simulate");
+  clout << "========================================" << std::endl;
+  clout << "      Venturi 3D Simulation Start       " << std::endl;
+  clout << "========================================" << std::endl;
+  clout << "Parameters:" << std::endl;
+  // Calculate Re and Resolution from converter properties since they are not in parameters
+  T reynolds = converter.getCharPhysVelocity() * converter.getCharPhysLength() / converter.getPhysViscosity();
+  T resolution = converter.getCharPhysLength() / converter.getPhysDeltaX();
+
+  clout << "  Reynolds number: " << reynolds << std::endl;
+  clout << "  Resolution:      " << resolution << std::endl;
+  clout << "  Max Phys Time:   " << maxPhysT << " s" << std::endl;
+  clout << "  Total Time Steps: " << iTmax << std::endl;
+  clout << "Output:" << std::endl;
+  const T outputInterval = 1.0;
+  clout << "  Output Interval: " << outputInterval << " s" << std::endl;
+  clout << "========================================" << std::endl;
+  clout << "Starting simulation..." << std::endl;
+  // ===================================
+
   util::Timer<T> timer(iTmax, myCase.getGeometry().getStatistics().getNvoxel());
   timer.start();
 
@@ -235,7 +259,7 @@ void simulate(MyCase& myCase) {
     setTemporalValues(myCase, iT);
 
     /// === Step 8.2: Collide and Stream Execution ===
-    myCase.getLattice(NavierStokes{}).collideAndStream();
+    lattice.collideAndStream();
 
     /// === Step 8.3: Computation and Output of the Results ===
     getResults(myCase, timer, iT);
@@ -243,6 +267,11 @@ void simulate(MyCase& myCase) {
 
   timer.stop();
   timer.printSummary();
+
+  // === Palette: Completion Message ===
+  clout << "========================================" << std::endl;
+  clout << "       Simulation Completed Successfully " << std::endl;
+  clout << "========================================" << std::endl;
 }
 
 
