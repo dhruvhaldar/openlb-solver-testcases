@@ -125,6 +125,16 @@ int main(int argc, char* argv[])
   }
   myCaseParameters.fromCLI(argc, argv);
 
+  // Input validation
+  if (myCaseParameters.get<olb::parameters::RESOLUTION>() <= 0) {
+    std::cerr << "Error: RESOLUTION must be positive." << std::endl;
+    return 1;
+  }
+  if (myCaseParameters.get<olb::parameters::RAYLEIGH>() < 0) {
+    std::cerr << "Error: RAYLEIGH must be non-negative." << std::endl;
+    return 1;
+  }
+
   const int N              = myCaseParameters.get<parameters::RESOLUTION               >();
   const std::size_t Ra     = myCaseParameters.get<parameters::RAYLEIGH                 >();
   const T physViscosity    = myCaseParameters.get<parameters::PHYS_KINEMATIC_VISCOSITY >();
