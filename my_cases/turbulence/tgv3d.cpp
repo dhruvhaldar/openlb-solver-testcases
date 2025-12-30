@@ -480,6 +480,12 @@ void simulate(MyCase& myCase) {
   util::Timer<T> timer(iTmax, myCase.getGeometry().getStatistics().getNvoxel());
   timer.start();
 
+  // Fix: Ensure variables are defined in the correct scope.
+  // physMaxT is already defined in simulate.
+  // converter is already defined in simulate.
+  const std::size_t iTlog = std::max<std::size_t>(1, converter.getLatticeTime(physMaxT/40.));
+  const std::size_t iTvtk = std::max<std::size_t>(1, converter.getLatticeTime(physMaxT/40.));
+
 #if defined(WALE)
   auto& geometry = myCase.getGeometry();
   std::list<int> mat;
