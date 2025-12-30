@@ -534,6 +534,19 @@ void simulate(MyCase& myCase) {
   const int  statIterNS = converter.getLatticeTime( maxPhysT/100 );
   const int  statIterAD = converter.getLatticeTime( maxPhysTAD/100 );
 
+  OstreamManager clout(std::cout, "simulate");
+  clout << "========================================" << std::endl;
+  clout << "  Laminar Reactive T-Mixer Simulation   " << std::endl;
+  clout << "========================================" << std::endl;
+  clout << "Parameters:" << std::endl;
+  clout << "  Resolution:      " << params.get<parameters::RESOLUTION>() << std::endl;
+  clout << "  Max Phys Time:   " << maxPhysT << " s" << std::endl;
+  clout << "  Total Time Steps: " << iTmax << std::endl;
+  clout << "Output:" << std::endl;
+  clout << "  VTM Output:      mixer_fluid.vtm, mixer_wholeReaction.vtm" << std::endl;
+  clout << "========================================" << std::endl;
+  clout << "Starting simulation..." << std::endl;
+
   myCase.getLattice(NavierStokes{}).setStatisticsOff();
   myCase.getLattice(Concentration<0>{}).setStatisticsOff();
   myCase.getLattice(Concentration<1>{}).setStatisticsOff();
@@ -579,6 +592,10 @@ void simulate(MyCase& myCase) {
 
   timer.stop();
   timer.printSummary();
+
+  clout << "========================================" << std::endl;
+  clout << "       Simulation Completed Successfully " << std::endl;
+  clout << "========================================" << std::endl;
 }
 
 int main(int argc, char* argv[]) {
