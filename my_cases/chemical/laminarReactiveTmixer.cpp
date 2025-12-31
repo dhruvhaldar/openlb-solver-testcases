@@ -353,78 +353,88 @@ void getResultsNS(MyCase& myCase,
 {
   using T = MyCase::value_t;
   using DESCRIPTOR = MyCase::descriptor_t_of<NavierStokes>;
-  auto& geometry = myCase.getGeometry();
-  auto& lattice = myCase.getLattice(NavierStokes{});
   auto& params = myCase.getParameters();
-  const auto& converter = lattice.getUnitConverter();
-  OstreamManager clout( std::cout,"getResultsNS" );
-
-  SuperVTMwriter3D<T> vtmWriterNS( "mixer_fluid" );
-  SuperGeometryF<T, DESCRIPTOR::d> materials(geometry);
-  SuperLatticePhysVelocity3D<T, DESCRIPTOR> velocity( lattice, converter );
-  SuperLatticePhysPressure3D<T, DESCRIPTOR> pressure( lattice, converter );
-  vtmWriterNS.addFunctor( materials );
-  vtmWriterNS.addFunctor( velocity );
-  vtmWriterNS.addFunctor( pressure );
+  const auto& converter = myCase.getLattice(NavierStokes{}).getUnitConverter();
 
   const T maxPhysT = params.get<parameters::MAX_PHYS_TIME>();
-  const int  vtkIter  = converter.getLatticeTime( maxPhysT/10 );
-  const int  statIter = converter.getLatticeTime( maxPhysT/100 );
+  const int vtkIter  = std::max(1, converter.getLatticeTime( maxPhysT/10 ));
+  const int statIter = std::max(1, converter.getLatticeTime( maxPhysT/100 ));
+  const bool plotOverLine = params.get<parameters::PLOT_OVER_LINE>();
+  const int endIter = converter.getLatticeTime( maxPhysT ) - 1;
 
-  if ( iT==0 ) {
-    // Writes the geometry, cuboid no. and rank no. as vti file for visualization
-    SuperLatticeCuboid3D<T, DESCRIPTOR> cuboid( lattice );
-    SuperLatticeRank3D<T, DESCRIPTOR> rank( lattice );
-    vtmWriterNS.write( cuboid );
-    vtmWriterNS.write( rank );
-    vtmWriterNS.createMasterFile();
-  }
+  bool doInit = (iT == 0);
+  bool doVtk = (iT % vtkIter == 0);
+  bool doStat = (iT % statIter == 0);
+  bool doPlot = plotOverLine && (iT == endIter);
 
-  // Writes the ppm files
-  if ( iT%vtkIter==0 ) {
-    lattice.setProcessingContext(ProcessingContext::Evaluation);
-    vtmWriterNS.write( iT );
+  if (!doInit && !doVtk && !doStat && !doPlot) return;
+
+  OstreamManager clout( std::cout,"getResultsNS" );
+
+  if (doInit || doVtk || doPlot) {
+    auto& geometry = myCase.getGeometry();
+    auto& lattice = myCase.getLattice(NavierStokes{});
+
+    SuperVTMwriter3D<T> vtmWriterNS( "mixer_fluid" );
+    SuperGeometryF<T, DESCRIPTOR::d> materials(geometry);
+    SuperLatticePhysVelocity3D<T, DESCRIPTOR> velocity( lattice, converter );
+    SuperLatticePhysPressure3D<T, DESCRIPTOR> pressure( lattice, converter );
+    vtmWriterNS.addFunctor( materials );
+    vtmWriterNS.addFunctor( velocity );
+    vtmWriterNS.addFunctor( pressure );
+
+    if ( doInit ) {
+      // Writes the geometry, cuboid no. and rank no. as vti file for visualization
+      SuperLatticeCuboid3D<T, DESCRIPTOR> cuboid( lattice );
+      SuperLatticeRank3D<T, DESCRIPTOR> rank( lattice );
+      vtmWriterNS.write( cuboid );
+      vtmWriterNS.write( rank );
+      vtmWriterNS.createMasterFile();
+    }
+
+    // Writes the ppm files
+    if ( doVtk ) {
+      lattice.setProcessingContext(ProcessingContext::Evaluation);
+      vtmWriterNS.write( iT );
+    }
+
+    if( doPlot ) {
+        // Preparation
+        lattice.setProcessingContext(ProcessingContext::Evaluation);
+        const T lx_inlet = params.get<parameters::LX_INLET>();
+        Gnuplot<T> csvWriter("flowField");
+        int dummy[4];
+        T result[4];
+        const int nX = geometry.getCuboidDecomposition().getMotherCuboid().getNx();  // number of voxels in x-direction
+        const int minX = converter.getLatticeLength(lx_inlet);                       // beginning of the mixing channel
+        auto mat = new SuperIndicatorIdentity3D<T> (geometry.getMaterialIndicator({1,5}));
+        const Vector<T,3> normal( 1, 0, 0 );
+
+        for (int iX = minX; iX < nX - 3; ++iX) {
+          const T x = converter.getPhysLength(iX);
+          const Vector<T,3> center( x, 0, 0 );
+          auto circle = new SuperIndicatorFfromIndicatorF3D<T>(
+            std::shared_ptr<IndicatorF3D<T>>(new IndicatorCircle3D<T> ( center, normal, 0.0003)), geometry);
+          SuperIndicatorMultiplication3D<T> plane(circle, mat);
+
+          // Average concentration: use average functor
+          SuperAverage3D<T> (velocity, plane).operator()(result, dummy);
+          const T avVel = result[0];
+          SuperAverage3D<T> (pressure, plane).operator()(result, dummy);
+          const T avPres = result[0];
+
+          csvWriter.setData(x, {avVel, avPres});
+        }
+        csvWriter.writePNG();
+    }
   }
 
   // Writes output on the console
-  if ( iT%statIter==0 && iT>=0 ) {
+  if ( doStat ) {
     // Timer console output
     timer.update( iT );
     timer.printStep();
-    lattice.getStatistics().print(iT,converter.getPhysTime(iT));
-  }
-
-  const T lx_inlet = params.get<parameters::LX_INLET>();
-  const bool plotOverLine = params.get<parameters::PLOT_OVER_LINE>();
-  if(plotOverLine) {
-    if (iT == (converter.getLatticeTime( maxPhysT ) - 1)) {
-      // Preparation
-      lattice.setProcessingContext(ProcessingContext::Evaluation);
-      Gnuplot<T> csvWriter("flowField");
-      int dummy[4];
-      T result[4];
-      const int nX = geometry.getCuboidDecomposition().getMotherCuboid().getNx();  // number of voxels in x-direction
-      const int minX = converter.getLatticeLength(lx_inlet);                       // beginning of the mixing channel
-      auto mat = new SuperIndicatorIdentity3D<T> (geometry.getMaterialIndicator({1,5}));
-      const Vector<T,3> normal( 1, 0, 0 );
-
-      for (int iX = minX; iX < nX - 3; ++iX) {
-        const T x = converter.getPhysLength(iX);
-        const Vector<T,3> center( x, 0, 0 );
-        auto circle = new SuperIndicatorFfromIndicatorF3D<T>(
-          std::shared_ptr<IndicatorF3D<T>>(new IndicatorCircle3D<T> ( center, normal, 0.0003)), geometry);
-        SuperIndicatorMultiplication3D<T> plane(circle, mat);
-
-        // Average concentration: use average functor
-        SuperAverage3D<T> (velocity, plane).operator()(result, dummy);
-        const T avVel = result[0];
-        SuperAverage3D<T> (pressure, plane).operator()(result, dummy);
-        const T avPres = result[0];
-
-        csvWriter.setData(x, {avVel, avPres});
-      }
-      csvWriter.writePNG();
-    }
+    myCase.getLattice(NavierStokes{}).getStatistics().print(iT,converter.getPhysTime(iT));
   }
 }
 
@@ -434,93 +444,103 @@ void getResultsCRAD(MyCase& myCase,
 {
   using T = MyCase::value_t;
   using RADDESCRIPTOR = MyCase::descriptor_t_of<Concentration<0>>;
-  auto& geometry = myCase.getGeometry();
-  const auto& converter = myCase.getLattice(NavierStokes{}).getUnitConverter();
-  const auto& converterAD = myCase.getLattice(Concentration<0>{}).getUnitConverter();
   auto& params = myCase.getParameters();
-  OstreamManager clout( std::cout,"getResultsCRAD" );
-
-  SuperVTMwriter3D<T> vtmWriterCRAD( "mixer_wholeReaction" );
-
-  // insert concentrations and velocoties for each component into vector and vtk
-  std::vector<SuperLatticeDensity3D<T, RADDESCRIPTOR>*> densities;
-  std::vector<SuperLatticePhysViscosity3D<T, RADDESCRIPTOR>*> diffs;
-  std::vector<std::string> names = {"A","B","P"};
-
-  densities.emplace_back( new SuperLatticeDensity3D<T, RADDESCRIPTOR> (myCase.getLattice(Concentration<0>{})));
-  densities.emplace_back( new SuperLatticeDensity3D<T, RADDESCRIPTOR> (myCase.getLattice(Concentration<1>{})));
-  densities.emplace_back( new SuperLatticeDensity3D<T, RADDESCRIPTOR> (myCase.getLattice(Concentration<2>{})));
-  for (int i = 0; i<3;i++){
-    densities[i]->getName() = "Concentration " + names[i];
-    vtmWriterCRAD.addFunctor(*densities[i]);
-  }
-  diffs.emplace_back( new SuperLatticePhysViscosity3D<T, RADDESCRIPTOR> (myCase.getLattice(Concentration<0>{}), converterAD));
-  diffs.emplace_back( new SuperLatticePhysViscosity3D<T, RADDESCRIPTOR> (myCase.getLattice(Concentration<1>{}), converterAD));
-  diffs.emplace_back( new SuperLatticePhysViscosity3D<T, RADDESCRIPTOR> (myCase.getLattice(Concentration<2>{}), converterAD));
-  for (int i = 0; i<3;i++){
-    diffs[i]->getName() = "Diffusisvity " + names[i];
-    vtmWriterCRAD.addFunctor(*diffs[i]);
-  }
+  const auto& converter = myCase.getLattice(NavierStokes{}).getUnitConverter();
 
   const T maxPhysT = params.get<parameters::MAX_PHYS_TIME>();
   const T maxPhysTAD = params.get<parameters::MAX_PHYS_TIME_AD>();
-  const int  vtkIter  = converter.getLatticeTime( maxPhysTAD/10 );
-  const int  statIter = converter.getLatticeTime( maxPhysTAD/100 );
+  const int vtkIter  = std::max(1, converter.getLatticeTime( maxPhysTAD/10 ));
+  const int statIter = std::max(1, converter.getLatticeTime( maxPhysTAD/100 ));
+  const bool plotOverLine = params.get<parameters::PLOT_OVER_LINE>();
+  const int endIter = converter.getLatticeTime( maxPhysT ) - 1;
 
-  if ( iT==0 ) {
-    vtmWriterCRAD.createMasterFile();
-  }
+  bool doInit = (iT == 0);
+  bool doVtk = (iT % vtkIter == 0);
+  bool doStat = (iT % statIter == 0);
+  bool doPlot = plotOverLine && (iT == endIter);
 
-  // Writes the ppm files
-  if ( iT%vtkIter==0 ) {
-    myCase.getLattice(Concentration<0>{}).setProcessingContext(ProcessingContext::Evaluation);
-    myCase.getLattice(Concentration<1>{}).setProcessingContext(ProcessingContext::Evaluation);
-    myCase.getLattice(Concentration<2>{}).setProcessingContext(ProcessingContext::Evaluation);
+  if (!doInit && !doVtk && !doStat && !doPlot) return;
 
-    SuperGeometryF<T, RADDESCRIPTOR::d> materials(geometry);
-    vtmWriterCRAD.addFunctor( materials );
-    vtmWriterCRAD.write( iT );
+  OstreamManager clout( std::cout,"getResultsCRAD" );
+
+  if (doInit || doVtk || doPlot) {
+      auto& geometry = myCase.getGeometry();
+      const auto& converterAD = myCase.getLattice(Concentration<0>{}).getUnitConverter();
+
+      SuperVTMwriter3D<T> vtmWriterCRAD( "mixer_wholeReaction" );
+
+      // insert concentrations and velocities for each component into vector and vtk
+      std::vector<SuperLatticeDensity3D<T, RADDESCRIPTOR>*> densities;
+      std::vector<SuperLatticePhysViscosity3D<T, RADDESCRIPTOR>*> diffs;
+      std::vector<std::string> names = {"A","B","P"};
+
+      densities.emplace_back( new SuperLatticeDensity3D<T, RADDESCRIPTOR> (myCase.getLattice(Concentration<0>{})));
+      densities.emplace_back( new SuperLatticeDensity3D<T, RADDESCRIPTOR> (myCase.getLattice(Concentration<1>{})));
+      densities.emplace_back( new SuperLatticeDensity3D<T, RADDESCRIPTOR> (myCase.getLattice(Concentration<2>{})));
+      for (int i = 0; i<3;i++){
+        densities[i]->getName() = "Concentration " + names[i];
+        vtmWriterCRAD.addFunctor(*densities[i]);
+      }
+      diffs.emplace_back( new SuperLatticePhysViscosity3D<T, RADDESCRIPTOR> (myCase.getLattice(Concentration<0>{}), converterAD));
+      diffs.emplace_back( new SuperLatticePhysViscosity3D<T, RADDESCRIPTOR> (myCase.getLattice(Concentration<1>{}), converterAD));
+      diffs.emplace_back( new SuperLatticePhysViscosity3D<T, RADDESCRIPTOR> (myCase.getLattice(Concentration<2>{}), converterAD));
+      for (int i = 0; i<3;i++){
+        diffs[i]->getName() = "Diffusisvity " + names[i];
+        vtmWriterCRAD.addFunctor(*diffs[i]);
+      }
+
+      if ( doInit ) {
+        vtmWriterCRAD.createMasterFile();
+      }
+
+      // Writes the ppm files
+      if ( doVtk ) {
+        myCase.getLattice(Concentration<0>{}).setProcessingContext(ProcessingContext::Evaluation);
+        myCase.getLattice(Concentration<1>{}).setProcessingContext(ProcessingContext::Evaluation);
+        myCase.getLattice(Concentration<2>{}).setProcessingContext(ProcessingContext::Evaluation);
+
+        SuperGeometryF<T, RADDESCRIPTOR::d> materials(geometry);
+        vtmWriterCRAD.addFunctor( materials );
+        vtmWriterCRAD.write( iT );
+      }
+
+      if( doPlot ) {
+        // Compute mixing quantities along central axis
+          myCase.getLattice(Concentration<0>{}).setProcessingContext(ProcessingContext::Evaluation);
+          myCase.getLattice(Concentration<1>{}).setProcessingContext(ProcessingContext::Evaluation);
+          myCase.getLattice(Concentration<2>{}).setProcessingContext(ProcessingContext::Evaluation);
+          // Preparation
+          Gnuplot<T> csvWriter("mixing");
+          int dummy[4];
+          T result[4];
+          const int nX = geometry.getCuboidDecomposition().getMotherCuboid().getNx();  // number of voxels in x-direction
+          const int minX = 3;                      // beginning of the mixing channel
+          auto mat = new SuperIndicatorIdentity3D<T> (geometry.getMaterialIndicator({1/*,5*/}));
+          const Vector<T,3> normal( 1, 0, 0 );
+
+          for (int iX = minX; iX < nX - 3; ++iX) {
+            const T x = converter.getPhysLength(iX);
+            const Vector<T,3> center( x, 0, 0 );
+            auto circle = new SuperIndicatorFfromIndicatorF3D<T>(
+              std::shared_ptr<IndicatorF3D<T>>(new IndicatorCircle3D<T> ( center, normal, 0.0003)), geometry);
+            SuperIndicatorMultiplication3D<T> plane(circle, mat);
+
+            // Average concentration: use average functor
+            SuperAverage3D<T> (densities[2], plane).operator()(result, dummy);
+            const T avConc = result[0];
+            if (iX == nX - 8) {  // at outlet
+              clout << "av. conc. at outlet = " << avConc << std::endl;
+            }
+            csvWriter.setData(x, avConc);
+          }
+          csvWriter.writePNG();
+      }
   }
 
   // Writes output on the console
-  if ( iT%statIter==0 && iT>=0 ) {
+  if ( doStat ) {
     // Lattice statistics console output
     myCase.getLattice(Concentration<1>{}).getStatistics().print(iT,converter.getPhysTime(iT));
-  }
-
-  const bool plotOverLine = params.get<parameters::PLOT_OVER_LINE>();
-  if(plotOverLine) {
-    // Compute mixing quantities along central axis
-    if (iT == (converter.getLatticeTime( maxPhysT ) - 1)) {
-      myCase.getLattice(Concentration<0>{}).setProcessingContext(ProcessingContext::Evaluation);
-      myCase.getLattice(Concentration<1>{}).setProcessingContext(ProcessingContext::Evaluation);
-      myCase.getLattice(Concentration<2>{}).setProcessingContext(ProcessingContext::Evaluation);
-      // Preparation
-      Gnuplot<T> csvWriter("mixing");
-      int dummy[4];
-      T result[4];
-      const int nX = geometry.getCuboidDecomposition().getMotherCuboid().getNx();  // number of voxels in x-direction
-      const int minX = 3;                      // beginning of the mixing channel
-      auto mat = new SuperIndicatorIdentity3D<T> (geometry.getMaterialIndicator({1/*,5*/}));
-      const Vector<T,3> normal( 1, 0, 0 );
-
-      for (int iX = minX; iX < nX - 3; ++iX) {
-        const T x = converter.getPhysLength(iX);
-        const Vector<T,3> center( x, 0, 0 );
-        auto circle = new SuperIndicatorFfromIndicatorF3D<T>(
-          std::shared_ptr<IndicatorF3D<T>>(new IndicatorCircle3D<T> ( center, normal, 0.0003)), geometry);
-        SuperIndicatorMultiplication3D<T> plane(circle, mat);
-
-        // Average concentration: use average functor
-        SuperAverage3D<T> (densities[2], plane).operator()(result, dummy);
-        const T avConc = result[0];
-        if (iX == nX - 8) {  // at outlet
-          clout << "av. conc. at outlet = " << avConc << std::endl;
-        }
-        csvWriter.setData(x, avConc);
-      }
-      csvWriter.writePNG();
-    }
   }
 }
 
