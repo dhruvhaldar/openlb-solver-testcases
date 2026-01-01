@@ -304,8 +304,12 @@ void setInitialValues(MyCase& myCase)
   lattice.initialize();
 }
 
-void getResults(MyCase& myCase, util::Timer<MyCase::value_t>& timer, std::size_t iT)
+void getResults(MyCase& myCase, util::Timer<MyCase::value_t>& timer, std::size_t iT, int vtkIter, int statIter)
 {
+  // Optimization: Early return to avoid expensive object creation and lookups
+  if (iT != 0 && iT % vtkIter != 0 && iT % statIter != 0) {
+    return;
+  }
 
   using T          = MyCase::value_t;
   using DESCRIPTOR = MyCase::descriptor_t_of<NavierStokes>;
@@ -313,14 +317,6 @@ void getResults(MyCase& myCase, util::Timer<MyCase::value_t>& timer, std::size_t
   auto& lattice    = myCase.getLattice(NavierStokes {});
   auto& geometry   = myCase.getGeometry();
   auto& converter  = lattice.getUnitConverter();
-
-  const int vtkIter  = lattice.getUnitConverter().getLatticeTime(.3);
-  const int statIter = lattice.getUnitConverter().getLatticeTime(.1);
-
-  // Optimization: Early return to avoid expensive object creation
-  if (iT != 0 && iT % vtkIter != 0 && iT % statIter != 0) {
-    return;
-  }
 
   OstreamManager clout(std::cout, "getResults");
 
@@ -440,21 +436,21 @@ void simulate(MyCase& myCase)
   smoothInflowUpdateO.restrictTo(geometry.getMaterialIndicator(3));
   clout << "Created smoothInflowUpdateO..." << std::endl;
 
+  // Optimization: Pre-calculate invariant values outside the loop
+  const int vtkIter  = converter.getLatticeTime(.3);
+  const int statIter = converter.getLatticeTime(.1);
+  const std::size_t iTmaxStart = converter.getLatticeTime(0.1 * physMaxT);
+  const std::size_t iTupdate   = converter.getLatticeTime(0.001);
+
   for (std::size_t iT = 0; iT < iTmax; ++iT) {
-    {
-
-      const std::size_t iTmaxStart = converter.getLatticeTime(0.1 * physMaxT);
-      const std::size_t iTupdate   = converter.getLatticeTime(0.001);
-
-      if (iTupdate > 0 && iT % iTupdate == 0 && iT <= iTmaxStart) {
-        T                          frac[1] = {};
-        PolynomialStartScale<T, T> scale(iTmaxStart, T(1));
-        T                          iTvec[1] = {T(iT)};
-        scale(frac, iTvec);
-        smoothInflowUpdateO.setParameter<SmoothInflowUpdateO::VELOCITY>(
-            {frac[0] * converter.getCharLatticeVelocity(), 0});
-        smoothInflowUpdateO.apply();
-      }
+    if (iTupdate > 0 && iT % iTupdate == 0 && iT <= iTmaxStart) {
+      T                          frac[1] = {};
+      PolynomialStartScale<T, T> scale(iTmaxStart, T(1));
+      T                          iTvec[1] = {T(iT)};
+      scale(frac, iTvec);
+      smoothInflowUpdateO.setParameter<SmoothInflowUpdateO::VELOCITY>(
+          {frac[0] * converter.getCharLatticeVelocity(), 0});
+      smoothInflowUpdateO.apply();
     }
 
     // === Collide and Stream Execution ===
@@ -463,7 +459,7 @@ void simulate(MyCase& myCase)
 
     // === Computation and Output of the Results ===
     // std::cout << "Step " << iT << ": getResults" << std::endl;
-    getResults(myCase, timer, iT);
+    getResults(myCase, timer, iT, vtkIter, statIter);
   }
 
   timer.stop();
