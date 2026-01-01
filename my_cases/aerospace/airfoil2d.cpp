@@ -507,6 +507,14 @@ int main(int argc, char* argv[])
     std::cerr << "Error: REYNOLDS must be positive." << std::endl;
     return 1;
   }
+  if (myCaseParameters.get<olb::parameters::CHORD_LENGTH>() <= 0) {
+    std::cerr << "Error: CHORD_LENGTH must be positive." << std::endl;
+    return 1;
+  }
+  if (myCaseParameters.get<olb::parameters::MAX_PHYS_T>() <= 0) {
+    std::cerr << "Error: MAX_PHYS_T must be positive." << std::endl;
+    return 1;
+  }
 
   /// === Step 3: Create Mesh ===
   Mesh mesh = createMesh(myCaseParameters);
