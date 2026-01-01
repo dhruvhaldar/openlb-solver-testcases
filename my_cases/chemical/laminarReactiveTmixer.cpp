@@ -534,6 +534,27 @@ void simulate(MyCase& myCase) {
   const int  statIterNS = converter.getLatticeTime( maxPhysT/100 );
   const int  statIterAD = converter.getLatticeTime( maxPhysTAD/100 );
 
+  // === Palette: Standardized Banner ===
+  OstreamManager clout(std::cout, "simulate");
+  clout << "========================================" << std::endl;
+  clout << "   Laminar Reactive T-Mixer Start       " << std::endl;
+  clout << "========================================" << std::endl;
+  clout << "Parameters:" << std::endl;
+
+  // Calculate Re
+  T reynolds = converter.getCharPhysVelocity() * converter.getCharPhysLength() / converter.getPhysViscosity();
+
+  clout << "  Reynolds number: " << reynolds << std::endl;
+  clout << "  Resolution:      " << params.get<parameters::RESOLUTION>() << std::endl;
+  clout << "  Max Phys Time:   " << maxPhysT << " s" << std::endl;
+  clout << "  Phys Viscosity:  " << params.get<parameters::PHYS_CHAR_VISCOSITY>() << std::endl;
+  clout << "  Phys Velocity:   " << params.get<parameters::PHYS_CHAR_VELOCITY>() << std::endl;
+
+  clout << "Output:" << std::endl;
+  clout << "  Files:           mixer_fluid, mixer_wholeReaction" << std::endl;
+  clout << "========================================" << std::endl;
+  clout << "Starting simulation..." << std::endl;
+
   myCase.getLattice(NavierStokes{}).setStatisticsOff();
   myCase.getLattice(Concentration<0>{}).setStatisticsOff();
   myCase.getLattice(Concentration<1>{}).setStatisticsOff();
@@ -579,6 +600,11 @@ void simulate(MyCase& myCase) {
 
   timer.stop();
   timer.printSummary();
+
+  // === Palette: Completion Message ===
+  clout << "========================================" << std::endl;
+  clout << "       Simulation Completed Successfully " << std::endl;
+  clout << "========================================" << std::endl;
 }
 
 int main(int argc, char* argv[]) {
