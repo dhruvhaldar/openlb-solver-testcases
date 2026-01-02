@@ -271,8 +271,17 @@ void computeNusselt(MyCase& myCase){
 
 void getResults(MyCase& myCase,
                 util::Timer<MyCase::value_t>& timer,
-                int iT)
+                int iT,
+                int vtkIter,
+                int statIter)
 {
+  auto& parameters        = myCase.getParameters();
+  const bool converged    = parameters.get<parameters::CONVERGED>();
+
+  if (iT != 0 && iT % vtkIter != 0 && iT % statIter != 0 && !converged) {
+    return;
+  }
+
   using T = MyCase::value_t_of<NavierStokes>;
   using NSEDESCRIPTOR = MyCase::descriptor_t_of<NavierStokes>;
   using ADEDESCRIPTOR = MyCase::descriptor_t_of<Temperature>;
@@ -280,11 +289,6 @@ void getResults(MyCase& myCase,
   auto& NSElattice        = myCase.getLattice(NavierStokes{});
   auto& ADElattice        = myCase.getLattice(Temperature{});
   const auto& converter   = NSElattice.getUnitConverter();
-  auto& parameters        = myCase.getParameters();
-
-  const int statIter      = converter.getLatticeTime(parameters.get<parameters::PHYS_STAT_ITER_T>());
-  const int vtkIter       = converter.getLatticeTime(parameters.get<parameters::PHYS_VTK_ITER_T>());
-  const bool converged    = parameters.get<parameters::CONVERGED>();
 
   if (iT == 0)
   {
@@ -435,6 +439,8 @@ void simulate(MyCase& myCase){
   auto& parameters = myCase.getParameters();
 
   const int iTmax = converter.getLatticeTime(parameters.get<parameters::MAX_PHYS_T>());
+  const int vtkIter = converter.getLatticeTime(parameters.get<parameters::PHYS_VTK_ITER_T>());
+  const int statIter = converter.getLatticeTime(parameters.get<parameters::PHYS_STAT_ITER_T>());
 
   const int convIter = parameters.get<parameters::CONV_ITER>();
   util::ValueTracer<T> converge(6, parameters.get<parameters::CONVERGENCE_PRECISION>());
@@ -451,7 +457,7 @@ void simulate(MyCase& myCase){
       clout << "Simulation converged." << std::endl;
       clout << "Time " << iT << "." << std::endl;
 
-      getResults(myCase, timer, iT);
+      getResults(myCase, timer, iT, vtkIter, statIter);
       break;
     }
 
@@ -459,7 +465,7 @@ void simulate(MyCase& myCase){
     ADElattice.collideAndStream();
     myCase.getOperator("Boussinesq").apply();
 
-    getResults(myCase, timer, iT);
+    getResults(myCase, timer, iT, vtkIter, statIter);
 
     if(iT % convIter == 0 && !parameters.get<parameters::CONVERGED>())
     {
