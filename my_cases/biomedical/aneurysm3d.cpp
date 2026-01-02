@@ -342,6 +342,14 @@ int main(int argc, char* argv[])
     std::cerr << "Error: REYNOLDS must be positive to prevent division by zero." << std::endl;
     return 1;
   }
+  if (myCaseParameters.get<olb::parameters::MAX_PHYS_T>() <= 0) {
+    std::cerr << "Error: MAX_PHYS_T must be positive to prevent infinite loops or invalid time steps." << std::endl;
+    return 1;
+  }
+  if (myCaseParameters.get<olb::parameters::CFL>() <= 0) {
+    std::cerr << "Error: CFL must be positive to ensure valid physical time steps." << std::endl;
+    return 1;
+  }
 
   Mesh mesh = createMesh(myCaseParameters);
 
