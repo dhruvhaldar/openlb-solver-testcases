@@ -28,6 +28,7 @@
  */
 
 #include <olb.h>
+#include <fstream>
 
 using namespace olb;
 using namespace olb::names;
@@ -38,6 +39,15 @@ using MyCase = Case<
 
 Mesh<MyCase::value_t, MyCase::d> createMesh(MyCase::ParametersD& params)
 {
+  // Sentinel Security Check: Validate STL file existence
+  // Prevents crash or undefined behavior when loading missing external files.
+  std::string stlPath = params.get<parameters::STL_PATH>();
+  std::ifstream f(stlPath);
+  if (!f.good()) {
+    throw std::runtime_error("Critical Error: STL file '" + stlPath + "' not found or not readable.");
+  }
+  f.close();
+
   return Mesh<MyCase::value_t,MyCase::d>::fromSTL(params);
 }
 
