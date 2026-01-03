@@ -428,9 +428,6 @@ void getResults(MyCase& myCase,
 }
 
 void simulate(MyCase& myCase){
-  OstreamManager clout(std::cout,"Simulation");
-  clout << "Starting Simulation ..." << std::endl;
-
   using T = MyCase::value_t_of<NavierStokes>;
 
   auto& NSElattice = myCase.getLattice(NavierStokes{});
@@ -441,6 +438,22 @@ void simulate(MyCase& myCase){
   const int iTmax = converter.getLatticeTime(parameters.get<parameters::MAX_PHYS_T>());
   const int vtkIter = converter.getLatticeTime(parameters.get<parameters::PHYS_VTK_ITER_T>());
   const int statIter = converter.getLatticeTime(parameters.get<parameters::PHYS_STAT_ITER_T>());
+
+  // === Palette: Standardized Banner ===
+  OstreamManager clout(std::cout, "simulate");
+  clout << "========================================" << std::endl;
+  clout << "   Square Cavity 2D Simulation Start    " << std::endl;
+  clout << "========================================" << std::endl;
+  clout << "Parameters:" << std::endl;
+  clout << "  Rayleigh number: " << parameters.get<parameters::RAYLEIGH>() << std::endl;
+  clout << "  Prandtl number:  " << parameters.get<parameters::PRANDTL>() << std::endl;
+  clout << "  Resolution:      " << converter.getResolution() << std::endl;
+  clout << "  Max Phys Time:   " << parameters.get<parameters::MAX_PHYS_T>() << " s" << std::endl;
+  clout << "Output:" << std::endl;
+  clout << "  VTK Interval:    " << parameters.get<parameters::PHYS_VTK_ITER_T>() << " s" << std::endl;
+  clout << "  Stat Interval:   " << parameters.get<parameters::PHYS_STAT_ITER_T>() << " s" << std::endl;
+  clout << "========================================" << std::endl;
+  clout << "Starting simulation..." << std::endl;
 
   const int convIter = parameters.get<parameters::CONV_ITER>();
   util::ValueTracer<T> converge(6, parameters.get<parameters::CONVERGENCE_PRECISION>());
@@ -478,4 +491,9 @@ void simulate(MyCase& myCase){
 
   timer.stop();
   timer.printSummary();
+
+  // === Palette: Completion Message ===
+  clout << "========================================" << std::endl;
+  clout << "       Simulation Completed Successfully " << std::endl;
+  clout << "========================================" << std::endl;
 }
