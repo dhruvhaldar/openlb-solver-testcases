@@ -134,30 +134,30 @@ void setInitialValues(MyCase& myCase) {
 }
 
 void setTemporalValues(MyCase& myCase,
-                       std::size_t iT)
+                       std::size_t iT,
+                       std::size_t iTmaxStart)
 {
   using T = MyCase::value_t;
+  int iTperiod = 50;
 
-  auto& parameters = myCase.getParameters();
+  // Optimization: Early return before expensive lookups
+  if (iT % iTperiod != 0 || iT > iTmaxStart) {
+    return;
+  }
+
   auto& lattice = myCase.getLattice(NavierStokes{});
   auto& geometry = myCase.getGeometry();
 
-  const T maxPhysT = parameters.get<parameters::MAX_PHYS_T>();
-  int iTmaxStart = lattice.getUnitConverter().getLatticeTime( maxPhysT*0.8 );
-  int iTperiod = 50;
+  PolynomialStartScale<T,std::size_t> startScale( iTmaxStart, T( 1 ) );
+  T frac = T();
+  startScale(&frac, &iT);
 
-  if (iT % iTperiod == 0 && iT <= iTmaxStart) {
-    PolynomialStartScale<T,std::size_t> startScale( iTmaxStart, T( 1 ) );
-    T frac = T();
-    startScale(&frac, &iT);
+  // Creates and sets the Poiseuille inflow profile using functors
+  CirclePoiseuille3D<T> poiseuilleU( geometry, 3, frac*lattice.getUnitConverter().getCharLatticeVelocity(), T(), lattice.getUnitConverter().getPhysDeltaX() );
+  momenta::setVelocity(lattice, geometry.getMaterialIndicator(3), poiseuilleU);
 
-    // Creates and sets the Poiseuille inflow profile using functors
-    CirclePoiseuille3D<T> poiseuilleU( geometry, 3, frac*lattice.getUnitConverter().getCharLatticeVelocity(), T(), lattice.getUnitConverter().getPhysDeltaX() );
-    momenta::setVelocity(lattice, geometry.getMaterialIndicator(3), poiseuilleU);
-
-    lattice.setProcessingContext<Array<momenta::FixedVelocityMomentumGeneric::VELOCITY>>(
-      ProcessingContext::Simulation);
-  }
+  lattice.setProcessingContext<Array<momenta::FixedVelocityMomentumGeneric::VELOCITY>>(
+    ProcessingContext::Simulation);
 }
 
 void getResults(MyCase& myCase,
@@ -170,14 +170,14 @@ void getResults(MyCase& myCase,
   using T = MyCase::value_t;
   using DESCRIPTOR = MyCase::descriptor_t;
 
-  auto& lattice = myCase.getLattice(NavierStokes{});
-  auto& converter = lattice.getUnitConverter();
-
   // Optimization: Early return to avoid expensive object creation (STL lookup, etc.)
   // when no output is needed for this time step.
   if ( iT!=0 && iT % iTvtk != 0 && iT % iTlog != 0 ) {
     return;
   }
+
+  auto& lattice = myCase.getLattice(NavierStokes{});
+  auto& converter = lattice.getUnitConverter();
 
   SuperVTMwriter3D<T> vtmWriter( "venturi3d" );
 
@@ -258,12 +258,14 @@ void simulate(MyCase& myCase) {
   util::Timer<T> timer(iTmax, myCase.getGeometry().getStatistics().getNvoxel());
   timer.start();
 
-  const std::size_t iTlog = myCase.getLattice(NavierStokes{}).getUnitConverter().getLatticeTime(1.);
-  const std::size_t iTvtk = myCase.getLattice(NavierStokes{}).getUnitConverter().getLatticeTime(1.);
+  // Optimization: Pre-calculate loop invariants
+  const std::size_t iTmaxStart = converter.getLatticeTime(maxPhysT * 0.8);
+  const std::size_t iTlog = converter.getLatticeTime(1.);
+  const std::size_t iTvtk = converter.getLatticeTime(1.);
 
   for (std::size_t iT=0; iT < iTmax; ++iT) {
     /// === Step 8.1: Update the Boundary Values and Fields at Times ===
-    setTemporalValues(myCase, iT);
+    setTemporalValues(myCase, iT, iTmaxStart);
 
     /// === Step 8.2: Collide and Stream Execution ===
     lattice.collideAndStream();
